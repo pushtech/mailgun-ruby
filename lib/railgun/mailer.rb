@@ -168,6 +168,7 @@ module Railgun
     mb.subject mail.subject
     mb.body_html extract_body_html(mail)
     mb.body_text extract_body_text(mail)
+    mb.amp_html extract_amp_html(mail)
 
     [:to, :cc, :bcc].each do |rcpt_type|
       addrs = mail[rcpt_type] || nil
@@ -212,6 +213,20 @@ module Railgun
       nil
     end
   end
+    
+  # Returns the decoded AMP HTML from the Mail::Message object if it is available,
+  # otherwise nil.
+  #
+  # @param [Mail::Message] mail message to transform
+  #
+  # @return [String]
+  def extract_amp_html(mail)
+    begin
+      retrieve_amp_part(mail).body.decoded || nil
+    rescue
+      nil
+    end
+  end   
 
   # Returns the decoded text body from the Mail::Message object if it is available,
   # otherwise nil.
@@ -227,6 +242,20 @@ module Railgun
     end
   end
 
+    
+  # (decomposing multipart into individual format if necessary)
+  # otherwise nil.
+  #
+  # @param [Mail::Message] mail message to transform
+  #
+  # @return [Mail::Message] mail message with its content-type = text/x-amp-html
+  def retrieve_amp_part(mail)
+    # AMP emails should always be multipart, with an HTML fallback.
+    return nil unless mail.multipart?
+
+    mail.find_first_mime_type('text/x-amp-html')
+  end
+    
   # Returns the mail object from the Mail::Message object if text part exists,
   # (decomposing multipart into individual format if necessary)
   # otherwise nil.
